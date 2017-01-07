@@ -19,6 +19,7 @@ class NaiveEngine final : public Engine {
     std::vector<VarHandle> mutable_vars;
     FnProperty prop;
     const char* opr_name;
+    const char* attr_name;
   };
 
   NaiveEngine() {
@@ -46,13 +47,15 @@ class NaiveEngine final : public Engine {
                         std::vector<VarHandle> const& const_vars,
                         std::vector<VarHandle> const& mutable_vars,
                         FnProperty prop = FnProperty::kNormal,
-                        const char* opr_name = nullptr) override {
+                        const char* opr_name = nullptr,
+                        const char* attr_name = nullptr) override {
     NaiveOpr *opr = new NaiveOpr();
     opr->fn = fn;
     opr->const_vars = const_vars;
     opr->mutable_vars = mutable_vars;
     opr->prop = prop;
     opr->opr_name = opr_name;
+    opr->attr_name = attr_name;
     return opr;
   }
   void DeleteOperator(OprHandle op) override {
@@ -67,7 +70,8 @@ class NaiveEngine final : public Engine {
                     opr->mutable_vars,
                     opr->prop,
                     priority,
-                    PROFILER_MESSAGE(opr->opr_name));
+                    PROFILER_MESSAGE(opr->opr_name),
+                    PROFILER_MESSAGE(opr->attr_name));
   }
   void PushAsync(AsyncFn exec_fun,
                  Context exec_ctx,
@@ -75,7 +79,8 @@ class NaiveEngine final : public Engine {
                  std::vector<VarHandle> const& mutable_vars,
                  FnProperty prop = FnProperty::kNormal,
                  int priority = 0,
-                 const char* opr_name = nullptr) override {
+                 const char* opr_name = nullptr,
+                 const char* attr_name = nullptr) override {
     CallbackOnComplete callback = CreateCallback(
         NaiveEngine::OnComplete, nullptr);
     this->req_completed_ = false;

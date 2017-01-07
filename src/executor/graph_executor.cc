@@ -399,18 +399,7 @@ Graph GraphExecutor::InitGraph(nnvm::Symbol symbol,
   // other initializations
   g = nnvm::pass::InferShape(g, arg_shapes, "__shape__");
   g = nnvm::pass::InferType(g, arg_types, "__dtype__");
-
-  {
-    // memory allocator
-    const int kBadStorageID = -1;
-    const int kExternalStorageID = -2;
-    nnvm::StorageVector arg_storage_id(idx.num_node_entries(), kBadStorageID);
-    for (size_t j = num_forward_outputs_; j < idx.outputs().size(); ++j) {
-      arg_storage_id[idx.entry_id(idx.outputs()[j])] = kExternalStorageID;
-    }
-    g.attrs["storage"] = std::make_shared<dmlc::any>(std::move(arg_storage_id));
-    g = nnvm::ApplyPass(g, "PlanMemory");
-  }
+  g = nnvm::ApplyPass(g, "PlanMemory");
   g = DetectInplaceAddTo(g);
   return g;
 }
@@ -529,8 +518,10 @@ void GraphExecutor::InitCachedOps() {
     if (inode.source->is_variable()) continue;
 #if MXNET_USE_PROFILER
     op_nodes_[nid].opr_name = inode.source->op()->name.c_str();
+    op_nodes_[nid].attr_name = inode.source->attrs.name.c_str();
 #else
     op_nodes_[nid].opr_name = nullptr;
+    op_nodes_[nid].attr_name = nullptr;
 #endif
     if (skip_plus_node.at(nid)) {
       op_nodes_[nid].skip_exec_node = true; continue;
@@ -639,7 +630,8 @@ void GraphExecutor::InitCachedOps() {
     // setup the vars
     op_nodes_[nid].cached_opr = Engine::Get()->NewOperator(
         exec_fun, use_vars, mutate_vars, FnProperty::kNormal,
-        PROFILER_MESSAGE(op_nodes_[nid].opr_name));
+        PROFILER_MESSAGE(op_nodes_[nid].opr_name),
+        PROFILER_MESSAGE(op_nodes_[nid].attr_name));
   }
 }
 
